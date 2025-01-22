@@ -39,6 +39,26 @@ async def on_ready():
 with open("config.json", "r") as f:
     config = json.load(f)
 
+#Configure / command add modal for inputs
+#Todo: add modal for inputs
+@client.tree.command(name="configure", description="Configure the bot for your server.", guild=discord.Object(secret.GUILD_ID))
+async def configure(interaction: discord.Interaction, key: str, value: str):
+    try:
+        if interaction.user.guild_permissions.administrator or interaction.user.id in config[str(interaction.guild.id)]["admins"]:
+            if key in config[str(interaction.guild.id)]["roles"] and value.isdigit():
+                config[str(interaction.guild.id)]["roles"][key] = int(value)
+            elif key in config[str(interaction.guild.id)]["channels"] and value.isdigit():
+                config[str(interaction.guild.id)]["channels"][key] = int(value)
+            else:
+                config[str(interaction.guild.id)][key] = int(value) if value.isdigit() else value
+            with open("config.json", "w") as f:
+                json.dump(config, f, indent=4)
+            await interaction.response.send_message(f"Set {key} to {value}", ephemeral=True, delete_after=10)
+        else:
+            await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True, delete_after=10)
+    except discord.HTTPException:
+        await interaction.response.send_message("An error occurred while trying to configure the bot. Please try again later.", ephemeral=True, delete_after=10)
+
 #Config command
 #Todo: Make it into a / command and predefine the options
 @client.command()
@@ -52,26 +72,25 @@ async def configure(ctx: commands.Context, key: str, value: str):
             config[str(ctx.guild.id)][key] = int(value) if value.isdigit() else value
         with open("config.json", "w") as f:
             json.dump(config, f, indent=4)
-        await ctx.send(f"Set {key} to {value}")
+        await ctx.send(f"Set {key} to {value}", ephemeral=True, delete_after=10)
     else:
-        await ctx.send("You do not have permission to use this command.")
+        await ctx.send("You do not have permission to use this command.", ephemeral=True, delete_after=10)
 
 #Configure List Command to show all the current configurations of that guild
 #Todo: Make it into a / command and clean up the output
 @client.command()
 async def configure_list(ctx: commands.Context):
     if ctx.author.guild_permissions.administrator or ctx.author.id in config[str(ctx.guild.id)]["admins"]:
-        await ctx.send(f"Current configuration:\n{json.dumps(config[str(ctx.guild.id)], indent=4)}")
+        await ctx.send(f"Current configuration:\n{json.dumps(config[str(ctx.guild.id)], indent=4)}", ephemeral=True, delete_after=10)
     else:
-        await ctx.send("You do not have permission to use this command.")
+        await ctx.send("You do not have permission to use this command.", ephemeral=True, delete_after=10)
 
 #Maintenance / Command
 @client.tree.command(name="maintenance", description="Send a maintenance request to the maintenance team.")
 async def maintenance(interaction: discord.Interaction, message: str):
     try:
-        channel = interaction.channel
         role = interaction.guild.get_role(config[str(interaction.guild.id)]["roles"]["maintenance_team"])
-        await channel.send(f"{role.mention} Maintenance request from <@{int(interaction.user.id)}>: {message}")
+        await interaction.channel.send(f"{role.mention} Maintenance request from <@{int(interaction.user.id)}>: {message}")
         await interaction.response.send_message("Your request has been sent to the maintenance team.")
     except discord.HTTPException:
         await interaction.response.send_message("An error occurred while trying to send the maintenance request. Please try again later.")
@@ -82,16 +101,16 @@ async def add_admin(interaction: discord.Interaction, add_admin: discord.User):
     try:
         if interaction.user.guild_permissions.administrator:
             if str(add_admin.id) in config[str(interaction.guild.id)]["admins"]:
-                await interaction.response.send_message(f"<@{add_admin.id}> is already an admin.")
+                await interaction.response.send_message(f"<@{add_admin.id}> is already an admin.", ephemeral=True, delete_after=10)
                 return
             config[str(interaction.guild.id)]["admins"][str(add_admin.id)] = add_admin.id
             with open("config.json", "w") as f:
                 json.dump(config, f, indent=4)
-            await interaction.response.send_message(f"Added <@{add_admin.id}> as an admin.")
+            await interaction.response.send_message(f"Added <@{add_admin.id}> as an admin.", ephemeral=True, delete_after=10)
         else:
-            await interaction.response.send_message("You do not have permission to use this command.")
+            await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True, delete_after=10)
     except discord.HTTPException:
-        await interaction.response.send_message("An error occurred while trying to add the admin. Please try again later.")
+        await interaction.response.send_message("An error occurred while trying to add the admin. Please try again later.", ephemeral=True, delete_after=10)
 
 #Remove admin / command
 @client.tree.command(name="remove_admin", description="Remove a user as an admin.", guild=discord.Object(secret.GUILD_ID))
@@ -99,16 +118,16 @@ async def remove_admin(interaction: discord.Interaction, remove_admin: discord.U
     try:
         if interaction.user.guild_permissions.administrator or interaction.user.id in config[str(interaction.guild.id)]["admins"]:
             if str(remove_admin.id) not in config[str(interaction.guild.id)]["admins"]:
-                await interaction.response.send_message(f"<@{remove_admin.id}> is not an admin.")
+                await interaction.response.send_message(f"<@{remove_admin.id}> is not an admin.", ephemeral=True, delete_after=10)
                 return
             del config[str(interaction.guild.id)]["admins"][str(remove_admin.id)]
             with open("config.json", "w") as f:
                 json.dump(config, f, indent=4)
-            await interaction.response.send_message(f"Removed <@{remove_admin.id}> as an admin.")
+            await interaction.response.send_message(f"Removed <@{remove_admin.id}> as an admin.", ephemeral=True, delete_after=10)
         else:
-            await interaction.response.send_message("You do not have permission to use this command.")
+            await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True, delete_after=10)
     except discord.HTTPException:
-        await interaction.response.send_message("An error occurred while trying to remove the admin. Please try again later.")
+        await interaction.response.send_message("An error occurred while trying to remove the admin. Please try again later.", ephemeral=True, delete_after=10)
 
 #Start the bot
 if __name__ == "__main__":

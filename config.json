@@ -10,6 +10,9 @@
         "channels": {
             "general": 1328969418704949403,
             "random": ""
+        },
+        "categories": {
+            "open_tickets": 1331744963691548845
         }
     },
     "123_dummy_guild_id_789": {
@@ -18,10 +21,13 @@
         "roles": {
             "maintenance_team": 1234567890123456789
         },
-        "channels": {}
+        "channels": {},
+        "categories": {
+            "open_tickets": 0
+        }
     },
     "929612757781872701": {
-        "guild_name": " Big Dick Energy",
+        "guild_name": "Big Dick Energy",
         "admins": {
             "318985508913020930": 318985508913020930,
             "260614948277714944": 260614948277714944
@@ -29,6 +35,9 @@
         "roles": {
             "maintenance_team": 0
         },
-        "channels": {}
+        "channels": {},
+        "categories": {
+            "open_tickets": 0
+        }
     }
 }
