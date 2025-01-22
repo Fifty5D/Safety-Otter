@@ -40,6 +40,7 @@ with open("config.json", "r") as f:
     config = json.load(f)
 
 #Config command
+#Todo: Make it into a / command and predefine the options
 @client.command()
 async def configure(ctx: commands.Context, key: str, value: str):
     if ctx.author.guild_permissions.administrator or ctx.author.id in config[str(ctx.guild.id)]["admins"]:
@@ -56,6 +57,7 @@ async def configure(ctx: commands.Context, key: str, value: str):
         await ctx.send("You do not have permission to use this command.")
 
 #Configure List Command to show all the current configurations of that guild
+#Todo: Make it into a / command and clean up the output
 @client.command()
 async def configure_list(ctx: commands.Context):
     if ctx.author.guild_permissions.administrator or ctx.author.id in config[str(ctx.guild.id)]["admins"]:
@@ -90,6 +92,23 @@ async def add_admin(interaction: discord.Interaction, add_admin: discord.User):
             await interaction.response.send_message("You do not have permission to use this command.")
     except discord.HTTPException:
         await interaction.response.send_message("An error occurred while trying to add the admin. Please try again later.")
+
+#Remove admin / command
+@client.tree.command(name="remove_admin", description="Remove a user as an admin.", guild=discord.Object(secret.GUILD_ID))
+async def remove_admin(interaction: discord.Interaction, remove_admin: discord.User):
+    try:
+        if interaction.user.guild_permissions.administrator or interaction.user.id in config[str(interaction.guild.id)]["admins"]:
+            if str(remove_admin.id) not in config[str(interaction.guild.id)]["admins"]:
+                await interaction.response.send_message(f"<@{remove_admin.id}> is not an admin.")
+                return
+            del config[str(interaction.guild.id)]["admins"][str(remove_admin.id)]
+            with open("config.json", "w") as f:
+                json.dump(config, f, indent=4)
+            await interaction.response.send_message(f"Removed <@{remove_admin.id}> as an admin.")
+        else:
+            await interaction.response.send_message("You do not have permission to use this command.")
+    except discord.HTTPException:
+        await interaction.response.send_message("An error occurred while trying to remove the admin. Please try again later.")
 
 #Start the bot
 if __name__ == "__main__":
