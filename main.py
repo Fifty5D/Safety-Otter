@@ -1,10 +1,14 @@
 import json
+import os
 
 import discord
 from discord.ext import commands
 
 import secret
 
+INENTS = discord.Intents.all()
+COGS = [cog[:-3] for cog in os.listdir("cogs/") if cog.endswith(".py")]
+GUILD = discord.Object(secret.GUILD_ID)
 
 #Setting up the bot
 class SafetyOtter(commands.Bot):
@@ -15,33 +19,27 @@ class SafetyOtter(commands.Bot):
             activity=discord.Activity(type=discord.ActivityType.playing, name="Renting Storage Units like a BOSS"),
             status=discord.Status.online
         )
+
+    async def setup_hook(self) -> None:
+        for cog in COGS:
+            await self.load_extension(f"cogs.{cog}")
+        self.tree.copy_global_to(guild=GUILD)
+        await self.tree.sync(guild=GUILD)
     
-client = SafetyOtter(intents=discord.Intents.all())
+bot = SafetyOtter(intents=discord.Intents.all())
 
 #Configure the bot
-@client.event
+@bot.event
 async def on_ready():
-    try:
-        GUILD = discord.Object(secret.GUILD_ID)
-        print("Syncing commands")
-        await client.tree.sync(guild=GUILD)
-        print("Synced commands")
-    except discord.HTTPException:
-        print("Failed to sync commands. This is likely due to a missing permission.")
-    except discord.CommandSyncFailure:
-        print("Failed to sync commands. This is likely due to a user related error.")
-    except discord.Forbidden:
-        print("The client does not have the applications.commands scope in the guild.")
-    except discord.MissingApplicationID:
-        print("The client does not have an application ID.")
-    print(f"Logged in as {client.user.name} ({client.user.id})\nBot is ready to use!")
+    print(f"Logged in as {bot.user.name} ({bot.user.id}")
 
 with open("config.json", "r") as f:
     config = json.load(f)
+    bot.config = config
 
 #Configure / command add modal for inputs
 #Todo: add modal for inputs
-@client.tree.command(name="configure", description="Configure the bot for your server.", guild=discord.Object(secret.GUILD_ID))
+@bot.tree.command(name="configure", description="Configure the bot for your server.", guild=discord.Object(secret.GUILD_ID))
 async def configure(interaction: discord.Interaction, key: str, value: str):
     try:
         if interaction.user.guild_permissions.administrator or interaction.user.id in config[str(interaction.guild.id)]["admins"]:
@@ -59,44 +57,45 @@ async def configure(interaction: discord.Interaction, key: str, value: str):
     except discord.HTTPException:
         await interaction.response.send_message("An error occurred while trying to configure the bot. Please try again later.", ephemeral=True, delete_after=10)
 
-#Config command
-#Todo: Make it into a / command and predefine the options
-@client.command()
-async def configure(ctx: commands.Context, key: str, value: str):
-    if ctx.author.guild_permissions.administrator or ctx.author.id in config[str(ctx.guild.id)]["admins"]:
-        if key in config[str(ctx.guild.id)]["roles"] and value.isdigit():
-            config[str(ctx.guild.id)]["roles"][key] = int(value)
-        elif key in config[str(ctx.guild.id)]["channels"] and value.isdigit():
-            config[str(ctx.guild.id)]["channels"][key] = int(value)
-        else:
-            config[str(ctx.guild.id)][key] = int(value) if value.isdigit() else value
-        with open("config.json", "w") as f:
-            json.dump(config, f, indent=4)
-        await ctx.send(f"Set {key} to {value}", ephemeral=True, delete_after=10)
-    else:
-        await ctx.send("You do not have permission to use this command.", ephemeral=True, delete_after=10)
-
 #Configure List Command to show all the current configurations of that guild
-#Todo: Make it into a / command and clean up the output
-@client.command()
-async def configure_list(ctx: commands.Context):
-    if ctx.author.guild_permissions.administrator or ctx.author.id in config[str(ctx.guild.id)]["admins"]:
-        await ctx.send(f"Current configuration:\n{json.dumps(config[str(ctx.guild.id)], indent=4)}", ephemeral=True, delete_after=10)
-    else:
-        await ctx.send("You do not have permission to use this command.", ephemeral=True, delete_after=10)
-
-#Maintenance / Command
-@client.tree.command(name="maintenance", description="Send a maintenance request to the maintenance team.")
-async def maintenance(interaction: discord.Interaction, message: str):
+@bot.tree.command(name="configure_list", description="Show the current configuration of the bot for your server.", guild=discord.Object(secret.GUILD_ID))
+async def configure_list(interaction: discord.Interaction):
     try:
-        role = interaction.guild.get_role(config[str(interaction.guild.id)]["roles"]["maintenance_team"])
-        await interaction.channel.send(f"{role.mention} Maintenance request from <@{int(interaction.user.id)}>: {message}")
-        await interaction.response.send_message("Your request has been sent to the maintenance team.")
+        if interaction.user.guild_permissions.administrator or interaction.user.id in config[str(interaction.guild.id)]["admins"]:
+            guild_config = config[str(interaction.guild.id)]
+            admins = guild_config.get("admins", {})
+            roles = guild_config.get("roles", {})
+            channels = guild_config.get("channels", {})
+            other_settings = {k: v for k, v in guild_config.items() if k not in ["roles", "channels", "admins"]}
+            
+            message = "Current Admins:\n"
+            for admin, admin_id in admins.items():
+                admin_obj = interaction.guild.get_member(admin_id)
+                message += f"{admin}: {admin_obj.mention if admin_obj else 'User not found'}\n"
+
+            message = "Current configuration:\n\n**Roles:**\n"
+            for role, role_id in roles.items():
+                role_obj = interaction.guild.get_role(role_id)
+                message += f"{role}: {role_obj.mention if role_obj else 'Role not found'}\n"
+
+            message += "\n**Channels:**\n"
+            for channel, channel_id in channels.items():
+                channel_obj = interaction.guild.get_channel(channel_id)
+                message += f"{channel}: {channel_obj.mention if channel_obj else 'Channel not found'}\n"
+
+            message += "\n**Other Settings:**\n"
+            for key, value in other_settings.items():
+                message += f"{key}: {value}\n"
+
+            await interaction.response.send_message(message, ephemeral=True, delete_after=60)
+            await interaction.response.send_message(f"Current configuration:\n{json.dumps(config[str(interaction.guild.id)], indent=4)}", ephemeral=True, delete_after=60)
+        else:
+            await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True, delete_after=10)
     except discord.HTTPException:
-        await interaction.response.send_message("An error occurred while trying to send the maintenance request. Please try again later.")
+        await interaction.response.send_message("An error occurred while trying to get the configuration. Please try again later.", ephemeral=True, delete_after=20)
 
 #Add admin / command
-@client.tree.command(name="add_admin", description="Add a user as an admin.")
+@bot.tree.command(name="add_admin", description="Add a user as an admin.")
 async def add_admin(interaction: discord.Interaction, add_admin: discord.User):
     try:
         if interaction.user.guild_permissions.administrator:
@@ -113,7 +112,7 @@ async def add_admin(interaction: discord.Interaction, add_admin: discord.User):
         await interaction.response.send_message("An error occurred while trying to add the admin. Please try again later.", ephemeral=True, delete_after=10)
 
 #Remove admin / command
-@client.tree.command(name="remove_admin", description="Remove a user as an admin.", guild=discord.Object(secret.GUILD_ID))
+@bot.tree.command(name="remove_admin", description="Remove a user as an admin.", guild=discord.Object(secret.GUILD_ID))
 async def remove_admin(interaction: discord.Interaction, remove_admin: discord.User):
     try:
         if interaction.user.guild_permissions.administrator or interaction.user.id in config[str(interaction.guild.id)]["admins"]:
@@ -131,4 +130,4 @@ async def remove_admin(interaction: discord.Interaction, remove_admin: discord.U
 
 #Start the bot
 if __name__ == "__main__":
-    client.run(secret.TOKEN)
+    bot.run(secret.TOKEN)
