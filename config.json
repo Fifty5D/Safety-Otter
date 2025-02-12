@@ -12,7 +12,8 @@
         },
         "categories": {
             "open_tickets": 1331744963691548845
-        }
+        },
+        "ticket_count": 0
     },
     "123_dummy_guild_id_789": {
         "guild_name": "Dummy Guild",

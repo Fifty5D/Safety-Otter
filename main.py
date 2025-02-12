@@ -56,44 +56,7 @@ async def configure(interaction: discord.Interaction, key: str, value: str):
             await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True, delete_after=10)
     except discord.HTTPException:
         await interaction.response.send_message("An error occurred while trying to configure the bot. Please try again later.", ephemeral=True, delete_after=10)
-
-#Configure List Command to show all the current configurations of that guild
-@bot.tree.command(name="configure_list", description="Show the current configuration of the bot for your server.", guild=discord.Object(secret.GUILD_ID))
-async def configure_list(interaction: discord.Interaction):
-    try:
-        if interaction.user.guild_permissions.administrator or interaction.user.id in config[str(interaction.guild.id)]["admins"]:
-            guild_config = config[str(interaction.guild.id)]
-            admins = guild_config.get("admins", {})
-            roles = guild_config.get("roles", {})
-            channels = guild_config.get("channels", {})
-            other_settings = {k: v for k, v in guild_config.items() if k not in ["roles", "channels", "admins"]}
-            
-            message = "Current Admins:\n"
-            for admin, admin_id in admins.items():
-                admin_obj = interaction.guild.get_member(admin_id)
-                message += f"{admin}: {admin_obj.mention if admin_obj else 'User not found'}\n"
-
-            message = "Current configuration:\n\n**Roles:**\n"
-            for role, role_id in roles.items():
-                role_obj = interaction.guild.get_role(role_id)
-                message += f"{role}: {role_obj.mention if role_obj else 'Role not found'}\n"
-
-            message += "\n**Channels:**\n"
-            for channel, channel_id in channels.items():
-                channel_obj = interaction.guild.get_channel(channel_id)
-                message += f"{channel}: {channel_obj.mention if channel_obj else 'Channel not found'}\n"
-
-            message += "\n**Other Settings:**\n"
-            for key, value in other_settings.items():
-                message += f"{key}: {value}\n"
-
-            await interaction.response.send_message(message, ephemeral=True, delete_after=60)
-            await interaction.response.send_message(f"Current configuration:\n{json.dumps(config[str(interaction.guild.id)], indent=4)}", ephemeral=True, delete_after=60)
-        else:
-            await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True, delete_after=10)
-    except discord.HTTPException:
-        await interaction.response.send_message("An error occurred while trying to get the configuration. Please try again later.", ephemeral=True, delete_after=20)
-
+        
 #Add admin / command
 @bot.tree.command(name="add_admin", description="Add a user as an admin.")
 async def add_admin(interaction: discord.Interaction, add_admin: discord.User):
