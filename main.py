@@ -22,10 +22,10 @@ class SafetyOtter(commands.Bot):
 
     async def setup_hook(self) -> None:
         for cog in COGS:
-            await self.load_extension(f"cogs.{cog}")
-        self.tree.copy_global_to(guild=GUILD)
+            await bot.load_extension(f"cogs.{cog}")
+        self.tree.copy_global_to(guild=GUILD)  # This copies the global commands over to your guild.
         await self.tree.sync(guild=GUILD)
-    
+        
 bot = SafetyOtter(intents=discord.Intents.all())
 
 #Configure the bot
