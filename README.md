@@ -1,5 +1,5 @@
 # Safety-Otter
-Safety Otter bot for Stor365 Use. Owned by Anthony Buster
+Safety Otter bot for use by Fifty5D only.
 
 You will need to setup a file called "secret.py" with the following info:
 
